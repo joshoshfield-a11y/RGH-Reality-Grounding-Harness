@@ -2,7 +2,7 @@
 
 > **A 5-Chamber falsification pipeline for testing whether framework-specific claims make contact with measurable reality.**
 
-This repository is designed as a **living, operational system**. Every chamber is a standalone module that can be run independently or chained together. The goal is simple: **separate what can be measured from what cannot**, and **flag logical inconsistencies before they propagate**.
+This repository contains the core RGH pipeline — standalone, self-contained, and importable. The goal is simple: **separate what can be measured from what cannot**, and **flag logical inconsistencies before they propagate**.
 
 ---
 
@@ -11,10 +11,9 @@ This repository is designed as a **living, operational system**. Every chamber i
 1. [Quick Start](#quick-start)
 2. [The 5 Chambers](#the-5-chambers)
 3. [Repository Structure](#repository-structure)
-4. [Skills & Tools Section](#skills--tools-section)
-5. [Usage Examples](#usage-examples)
-6. [Adding New Chambers / Extending](#adding-new-chambers--extending)
-7. [License](#license)
+4. [Usage Examples](#usage-examples)
+5. [Adding New Chambers / Extending](#adding-new-chambers--extending)
+6. [License](#license)
 
 ---
 
@@ -59,43 +58,10 @@ RGH-Reality-Grounding-Harness/
 ├── Chamber4.py          # Domain-Crossing Consistency Auditor
 ├── Chamber5.py          # Synthesis & Constraint Layer
 ├── README.md            # You are here
-├── LICENSE              # Custom license (see below)
-└── skills/              # Cross-session reusable tools & skills
-    └── (add your own)
+└── LICENSE              # Custom license (see below)
 ```
 
-### What Goes Where
-
-- **Chamber files (`Chamber1.py`–`Chamber5.py`)** — Core pipeline. Treat these as immutable reference implementations. If you extend a chamber, version it (e.g., `Chamber4_v2.py`).
-- **`skills/`** — This is the ** Skills & Tools Section**. Drop reusable utilities here: custom operators, new framework vocab mappings, domain-specific claim extractors, visualization helpers, or integration adapters. These are meant to be **easily accessible across sessions** — import them into any chamber or external script.
-- **`LICENSE`** — Custom license. Free for public/non-commercial use. Commercial use requires a paid license from the author.
-
----
-
-## Skills & Tools Section
-
-The `skills/` directory is where you store **reusable, cross-session components** that extend the RGH pipeline without modifying the core chambers.
-
-### Examples of what to put here:
-
-| Skill | Description |
-|-------|-------------|
-| `skills/framework_vocab.py` | Extended `FRAMEWORK_VOCAB` dictionaries for new domains (e.g., biophysics, cryptography). |
-| `skills/physics_constants.py` | Additional physics constants beyond the base set (e.g., Schwinger limit, Planck energy). |
-| `skills/claim_extractors.py` | NLP or regex-based extractors that pull claims from PDFs, markdown, or raw text corpora. |
-| `skills/visualizers.py` | Matplotlib / Plotly dashboards for rendering chamber output as audit reports. |
-| `skills/domain_operators.py` | New shared operators for Chamber 4 (e.g., `log_reduction`, `phi_scaling`). |
-
-### How to use a skill:
-
-```python
-from skills.physics_constants import EXTENDED_PHYSICS_CONSTANTS
-from Chamber1 import classify_claim
-
-# Now your chamber has access to extended constants
-```
-
-**Rule of thumb:** If you find yourself copy-pasting the same helper across multiple sessions, it belongs in `skills/`.
+**This repo is the core pipeline only.** Integration skills, extended vocabularies, domain-specific operators, and cross-session tooling live in the **UPE-78 Knowledge Base** (`skills/` directory of the KB repo).
 
 ---
 
@@ -157,8 +123,7 @@ is_valid = engine.check_thermodynamics("C002", energy_output_claim=1e8)
 1. **Fork or branch** this repo.
 2. Create `ChamberN.py` following the dataclass + enum + `run_chamberN()` pattern.
 3. Add your chamber to the table in this README.
-4. If you build reusable tools, drop them in `skills/`.
-5. **Never delete existing files** — this repo follows an append-only doctrine. Version new iterations rather than overwriting.
+4. **Never delete existing files** — this repo follows an append-only doctrine. Version new iterations rather than overwriting.
 
 ---
 
