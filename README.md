@@ -1,8 +1,12 @@
 # Reality Grounding Harness (RGH)
 
 > **A 5-Chamber falsification pipeline for testing whether framework-specific claims make contact with measurable reality.**
+>
+> **Now with ARCF (Alexandria Reality-Contact Framework) validators.**
 
 This repository contains the core RGH pipeline — standalone, self-contained, and importable. The goal is simple: **separate what can be measured from what cannot**, and **flag logical inconsistencies before they propagate**.
+
+The `validators/` directory contains refactored versions of each chamber mapped to the [Alexandria Reality-Contact Framework](https://github.com/joshoshfield-a11y/alexandria-os), providing YAML-schema-backed validation, authority matrices, and cross-repo governance integration.
 
 ---
 
@@ -10,29 +14,35 @@ This repository contains the core RGH pipeline — standalone, self-contained, a
 
 1. [Quick Start](#quick-start)
 2. [The 5 Chambers](#the-5-chambers)
-3. [Repository Structure](#repository-structure)
-4. [Usage Examples](#usage-examples)
-5. [Adding New Chambers / Extending](#adding-new-chambers--extending)
-6. [License](#license)
+3. [ARCF Validators](#arcf-validators)
+4. [Repository Structure](#repository-structure)
+5. [Full Pipeline](#full-pipeline)
+6. [Adding New Chambers / Extending](#adding-new-chambers--extending)
 
 ---
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/joshoshfield-a11y/RGH-Reality-Grounding-Harness.git
-cd RGH-Reality-Grounding-Harness
+# Original chambers
 python3 -c "from Chamber1 import run_chamber1; print(run_chamber1([('C001','test','speed of light 299792458')]))"
+
+# ARCF validators (schema-backed)
+python3 validators/admission_validator.py
+python3 validators/authority_validator.py
+python3 validators/metric_integrity.py
+python3 validators/drift_reflexivity.py
+python3 validators/outcome_auditor.py
 ```
 
-Each chamber is a self-contained Python module. Import and chain them, or run them standalone.
+Each chamber is a self-contained Python module. Import and chain them, or run them standalone. The ARCF validators load schemas from `alexandria-os/registry/schemas/`.
 
 ---
 
 ## The 5 Chambers
 
 | Chamber | File | Name | Purpose |
-|---------|------|------|---------|
+|:-------:|:-----|:-----|:--------|
 | **1** | `Chamber1.py` | External Measurement Gate | Determines if a claim touches something physically measurable. Strips framework-specific vocabulary and checks against known physics constants. |
 | **2** | `Chamber2.py` | Falsifiability Stress Test | Generates the strongest possible disconfirming prediction for every measurable claim. Checks whether the framework has any escape hatch. |
 | **3** | `Chamber3.py` | Independent Replication Protocol | Re-expresses a claim as a pure input→transform→output pipeline with zero mythic vocabulary, then verifies identical output in a fresh execution context. |
@@ -41,10 +51,42 @@ Each chamber is a self-contained Python module. Import and chain them, or run th
 
 ### Chamber 5 Verdict States
 
-- `SYSTEM_STABLE` — All claims passed or are explicitly marked as hypotheses.
-- `THERMODYNAMIC_VIOLATION` — Energy extraction claims failed thermodynamic guardrails (e.g., Casimir/DCE limits).
+- `PHYSICALLY_GROUNDED` — Claim passed all chambers and makes measurable contact.
+- `UNFALSIFIABLE` — Claim has no disconfirming prediction (framework escape hatch).
+- `REPLICATION_FAILED` — Identical inputs produced different outputs.
 - `LOGICAL_INCONSISTENCY` — Operator registry failed Chamber 4 consistency checks.
-- `FRAMEWORK_HALLUCINATION` — Attempted to bridge gaps with unconstrained variables.
+- `THERMODYNAMIC_VIOLATION` — Claim implies energy creation or perpetual motion.
+- `MYTHIC_VOCABULARY` — Claim cannot be expressed without framework-specific terms.
+
+---
+
+## ARCF Validators
+
+The `validators/` directory contains refactored chambers mapped to the Alexandria Reality-Contact Framework:
+
+| Validator | Source Chamber | ARCF Mapping | Schema |
+|-----------|---------------|--------------|--------|
+| `admission_validator.py` | Chamber1 | Admission Validator | `claim`, `relation`, `metric`, `agent` |
+| `authority_validator.py` | Chamber2 | Authority Validator | `authority_matrix.yaml` |
+| `metric_integrity.py` | Chamber3 | Metric Integrity | `metric.yaml` |
+| `drift_reflexivity.py` | Chamber4 | Drift & Reflexivity | `drift-reflexivity.yaml` |
+| `outcome_auditor.py` | Chamber5 | Outcome Auditor | `decision.yaml` |
+
+### Usage
+
+```python
+from validators.admission_validator import AdmissionValidator
+
+v = AdmissionValidator("../alexandria-os/registry/schemas/")
+result = v.validate("claim", {
+    "id": "CLM-001",
+    "claim_type": "hypothesis",
+    "falsifier": {"condition": "test fails"},
+    "status_vector": {"semantic": "specified", "implementation": "tested", "operational": "unverified"},
+    "scope": {"applies_when": ["test"], "excludes": []}
+})
+print(result)  # {'passed': True, 'validator': 'admission', 'errors': [], 'warnings': []}
+```
 
 ---
 
@@ -52,22 +94,26 @@ Each chamber is a self-contained Python module. Import and chain them, or run th
 
 ```
 RGH-Reality-Grounding-Harness/
-├── Chamber1.py          # External Measurement Gate
-├── Chamber2.py          # Falsifiability Stress Test
-├── Chamber3.py          # Independent Replication Protocol
-├── Chamber4.py          # Domain-Crossing Consistency Auditor
-├── Chamber5.py          # Synthesis & Constraint Layer
-├── README.md            # You are here
-└── LICENSE              # Custom license (see below)
+├── Chamber1.py          # External Measurement Gate (original)
+├── Chamber2.py          # Falsifiability Stress Test (original)
+├── Chamber3.py          # Independent Replication Protocol (original)
+├── Chamber4.py          # Domain-Crossing Consistency Auditor (original)
+├── Chamber5.py          # Synthesis & Constraint Layer (original)
+├── validators/          # ARCF refactored versions
+│   ├── admission_validator.py
+│   ├── authority_validator.py
+│   ├── metric_integrity.py
+│   ├── drift_reflexivity.py
+│   └── outcome_auditor.py
+├── README.md
+└── LICENSE
 ```
-
-**This repo is the core pipeline only.** Integration skills, extended vocabularies, domain-specific operators, and cross-session tooling live in the **UPE-78 Knowledge Base** (`skills/` directory of the KB repo).
 
 ---
 
-## Usage Examples
+## Full Pipeline
 
-### Full Pipeline (Chambers 1 → 2 → 4 → 5)
+### Chambers 1 → 2 → 4 → 5
 
 ```python
 from Chamber1 import run_chamber1
@@ -77,8 +123,8 @@ from Chamber5 import RGH_SynthesisEngine, SynthesisVerdict
 
 # 1. Define claims
 claims = [
-    ("C001", "doc.md", "The system aggregates public radio and radar data."),
-    ("C002", "doc.md", "The dodecahedral cavity extracts 10^8 J from quantum vacuum."),
+    ("C001", "speed_of_light", "The speed of light in vacuum is 299792458 m/s"),
+    ("C002", "dark_matter", "Dark matter interacts only via gravity"),
 ]
 
 # 2. Run Chamber 1
@@ -88,19 +134,13 @@ c1_results = run_chamber1(claims)
 c2_results = run_chamber2(c1_results)
 
 # 4. Run Chamber 4 (domain consistency)
-claims_by_domain = {
-    "physics": ["speed of light 299792458", "gravitational curvature 13.0"],
-    "structure": ["dodecahedron face count 12", "layer depth 13"],
-}
+claims_by_domain = {"physics": ["C001", "C002"]}
 c4_results = run_chamber4(claims_by_domain, num_samples=4)
 
 # 5. Run Chamber 5 (synthesis)
 engine = RGH_SynthesisEngine(c1_results, c2_results, c4_results)
 verdict = engine.synthesize()
-
-print(verdict.status)      # e.g., SYSTEM_STABLE or LOGICAL_INCONSISTENCY
-print(verdict.summary)
-print(verdict.action_items)
+print(verdict)
 ```
 
 ### Standalone Chamber 5 (Synthesis Only)
@@ -111,30 +151,13 @@ from Chamber5 import RGH_SynthesisEngine
 # Pass pre-computed chamber results
 engine = RGH_SynthesisEngine(chamber1_data, chamber2_data, chamber4_data)
 verdict = engine.synthesize()
-
-# Check thermodynamic guardrail on a specific claim
-is_valid = engine.check_thermodynamics("C002", energy_output_claim=1e8)
 ```
 
 ---
 
 ## Adding New Chambers / Extending
 
-1. **Fork or branch** this repo.
+1. Copy `Chamber1.py` as a template.
 2. Create `ChamberN.py` following the dataclass + enum + `run_chamberN()` pattern.
 3. Add your chamber to the table in this README.
-4. **Never delete existing files** — this repo follows an append-only doctrine. Version new iterations rather than overwriting.
-
----
-
-## License
-
-See [LICENSE](LICENSE).
-
-- **Public / Non-Commercial:** Free to use, modify, distribute.
-- **Commercial Use:** Requires a paid license from Taylor Christian Mattheisen.
-- **Third-Party Conflict:** If any portion is found to infringe on pre-existing licensed work, that portion reverts to the original rightsholder's terms.
-
----
-
-*Built by Taylor Christian Mattheisen (Skit / Dogbytes) — 2026*
+4. If mapping to ARCF, add corresponding validator in `validators/` with schema loading.
