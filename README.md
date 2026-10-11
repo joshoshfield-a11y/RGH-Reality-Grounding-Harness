@@ -49,14 +49,27 @@ Each chamber is a self-contained Python module. Import and chain them, or run th
 | **4** | `Chamber4.py` | Domain-Crossing Consistency Auditor | Randomly samples domain pairs and applies the **same** operator across both. Detects cherry-picking in cross-domain operator claims. |
 | **5** | `Chamber5.py` | Synthesis & Constraint Layer | **Final orchestrator.** Imports results from Chambers 1–4, enforces thermodynamic and logical constraints, and produces a `SynthesisVerdict`. |
 
-### Chamber 5 Verdict States
+### Chamber 5 Verdict States (v0.2 — these are now actually emitted by the code)
 
-- `PHYSICALLY_GROUNDED` — Claim passed all chambers and makes measurable contact.
-- `UNFALSIFIABLE` — Claim has no disconfirming prediction (framework escape hatch).
-- `REPLICATION_FAILED` — Identical inputs produced different outputs.
-- `LOGICAL_INCONSISTENCY` — Operator registry failed Chamber 4 consistency checks.
-- `THERMODYNAMIC_VIOLATION` — Claim implies energy creation or perpetual motion.
-- `MYTHIC_VOCABULARY` — Claim cannot be expressed without framework-specific terms.
+- `PHYSICALLY_GROUNDED` — Every surviving claim passed Chamber 2 **against supplied evidence**. Nothing is grounded on words alone.
+- `NEEDS_EVIDENCE` — No failures and no violations, but no claim has survived against evidence yet. The honest default.
+- `CLAIM_FALSIFIED` — A claim failed its adversarial test against evidence. Retire or revise it.
+- `UNFALSIFIABLE_ROUTED` — Claims with no disconfirming prediction, routed out of the empirical track with a reformulate-or-relabel action item.
+- `REPLICATION_FAILED` — Identical inputs produced different outputs (Chamber 3).
+- `LOGICAL_INCONSISTENCY` — Chamber 4 cross-domain check diverged.
+- `THERMODYNAMIC_VIOLATION` — Claim asserts net energy creation without a source.
+
+### v0.2 changelog — the audit fixes
+
+An external audit (2026-10-10, documented in [alexandria-groundwork](https://github.com/joshoshfield-a11y/alexandria-groundwork)) found the v0.1 pipeline could not run end-to-end and its verdicts were driven by textual accidents. Fixed:
+
+1. **Chambers 2–3 couldn't import** (`ModuleNotFoundError`) — import names corrected; `tests/test_chambers.py` smoke test added so it can't regress.
+2. **Substring keyword matching** — v0.1 classified "rapid" as an engineering/API claim (contains "api"). All matching is now token-based with word boundaries.
+3. **Quantitative claims failed the gate** — "3–7x increase in pattern recognition" didn't pass Chamber 1. Change-words (increase/decrease/percent/times/…) are now measurable markers, and `MEASURABLE_QUANTIFIED` requires a number + unit/scale.
+4. **Digit heuristic** — v0.1 called any claim containing a digit "falsifiable" (an SOP label reading "CHRONO-001" was enough to "survive"). Falsifiability now requires a quantity + comparison or a withholdable cause, and the adversarial prediction cites the actual quantity.
+5. **Auto-SURVIVED** — v0.1 declared survival without looking at anything. v0.2 returns `FALSIFIABLE` (verdict pending) until evidence is supplied via `evidence_by_id`.
+6. **Chamber 4's silent default** — v0.1 defaulted to mod-13 reduction, making every "consistency" verdict numerology. `operator_name` is now required; the registry ships `identity` (control), `metcalfe_scaling` (defined), and `mod_13_reduction` (LEGACY, marked as such).
+7. **Fake thermodynamic guardrail** — v0.1 hardcoded `field_gradient = 1.0e10`. v0.2 derives the verdict from the claim text: explicit free-energy language is a violation, a named energy quantity is OK, anything else is `CANNOT_ASSESS` — an honest admission, not a hardcoded pass.
 
 ---
 
@@ -133,9 +146,12 @@ c1_results = run_chamber1(claims)
 # 3. Run Chamber 2
 c2_results = run_chamber2(c1_results)
 
-# 4. Run Chamber 4 (domain consistency)
-claims_by_domain = {"physics": ["C001", "C002"]}
-c4_results = run_chamber4(claims_by_domain, num_samples=4)
+# 4. Run Chamber 4 (domain consistency) — operator_name is required in v0.2
+claims_by_domain = {
+    "physics": ["speed of light 299792458 m/s"],
+    "engineering": ["signal frequency 299792458 hz"],
+}
+c4_results = run_chamber4(claims_by_domain, operator_name="identity", num_samples=4)
 
 # 5. Run Chamber 5 (synthesis)
 engine = RGH_SynthesisEngine(c1_results, c2_results, c4_results)
