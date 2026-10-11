@@ -1,11 +1,22 @@
 """
 RGH Chamber 4: Domain-Crossing Consistency Auditor
-Reality Grounding Harness — Chamber 4 of 4
+Reality Grounding Harness — Chamber 4 of 5 (v0.2)
 
-Purpose: Check whether claims that assert the same underlying grammar/operator
-applies across different domains (e.g., GR physics, Newtonian physics, Base-13
-structure, Tree of Life) actually hold up under RANDOM sampling of domain pairs,
-rather than letting the user hand-pick which pairs to test (cherry-pick risk).
+Purpose: Check whether claims that assert the same underlying operator
+applies across different domains actually hold up under RANDOM sampling
+of domain pairs, rather than letting the user hand-pick which pairs to
+test (cherry-pick risk).
+
+v0.2 changes:
+- Named operator REGISTRY. operator_name is now REQUIRED — v0.1 silently
+  defaulted to mod-13 reduction, so every "consistency" verdict was
+  numerology (residue coincidence). Callers must choose an operator and
+  defend the choice.
+- mod_13_reduction is kept as LEGACY for backwards compatibility and
+  marked as numerological. Prefer a defined operator.
+- A CONSISTENT verdict means the same function was applied to both
+  domains' quantities — syntactic consistency only. It is NOT evidence
+  that the domains share a mechanism. The reason string says so.
 
 Output states:
 - CONSISTENT_ACROSS_SAMPLED_DOMAINS
@@ -17,13 +28,61 @@ import re
 import random
 from dataclasses import dataclass, asdict
 from enum import Enum
-from typing import Optional
+from typing import Optional, Callable
 
 
 class ConsistencyFlag(Enum):
     CONSISTENT = "CONSISTENT_ACROSS_SAMPLED_DOMAINS"
     INCONSISTENT = "INCONSISTENT_CHERRY_PICK_RISK"
     INSUFFICIENT = "INSUFFICIENT_DATA"
+
+
+@dataclass
+class OperatorSpec:
+    name: str
+    function: Callable[[float], float]
+    input_domain: str   # what kind of quantity this operator is defined for
+    status: str         # DEFINED or LEGACY
+
+
+def _metcalfe(n: float) -> float:
+    """Metcalfe's law: network value scales as n^2 (Op 55, UT-ITD)."""
+    return n ** 2
+
+
+def _identity(x: float) -> float:
+    """Control operator: the null hypothesis that 'the same operator'
+    means 'no transformation'. Any CONSISTENT verdict under a real
+    operator should also hold trivially here; if it doesn't, the
+    extraction (not the operator) is broken."""
+    return x
+
+
+def _mod13(x: float) -> float:
+    return x % 13
+
+
+REGISTRY = {
+    "identity": OperatorSpec(
+        name="identity",
+        function=_identity,
+        input_domain="any numeric quantity (control)",
+        status="DEFINED",
+    ),
+    "metcalfe_scaling": OperatorSpec(
+        name="metcalfe_scaling",
+        function=_metcalfe,
+        input_domain="network node counts (n >= 0)",
+        status="DEFINED",
+    ),
+    "mod_13_reduction": OperatorSpec(
+        name="mod_13_reduction",
+        function=_mod13,
+        input_domain="any numeric quantity",
+        status="LEGACY — numerological; residue coincidence is not mechanism "
+               "agreement. Kept for backwards compatibility only.",
+    ),
+}
 
 
 @dataclass
@@ -38,39 +97,36 @@ class Chamber4Result:
     reason: str
 
 
-def apply_shared_operator(value: str, operator_name: str = "mod_13_reduction") -> Optional[float]:
+def apply_shared_operator(value: str, operator_name: str) -> Optional[float]:
     """
     Apply the SAME operator identically regardless of domain. This is the
     critical design constraint: the operator must not be adjusted per-domain,
     or the test becomes exactly the cherry-picking it is meant to detect.
-
-    Extend this function with additional operator_name branches to test
-    alternative shared operators (the current build ships with mod-13
-    reduction only, per initial test).
     """
-    match = re.search(r'\d+(\.\d+)?', value)
+    if operator_name not in REGISTRY:
+        raise ValueError(
+            f"Unknown operator '{operator_name}'. Choose from REGISTRY: "
+            f"{sorted(REGISTRY)}")
+    match = re.search(r"\d+(\.\d+)?", value)
     if not match:
         return None
-    numeric = float(match.group())
-
-    if operator_name == "mod_13_reduction":
-        return numeric % 13
-    # Add alternative operators here, e.g.:
-    # if operator_name == "log_reduction":
-    #     import math
-    #     return math.log(numeric + 1)
-    raise ValueError(f"Unknown operator_name: {operator_name}")
+    return REGISTRY[operator_name].function(float(match.group()))
 
 
-def run_chamber4(claims_by_domain: dict, num_samples: int = 10,
-                  operator_name: str = "mod_13_reduction", seed: int = 42) -> list:
+def run_chamber4(claims_by_domain: dict, operator_name: str,
+                 num_samples: int = 10, seed: int = 42) -> list:
     """
     claims_by_domain: dict mapping domain_name -> list of claim strings
         (each claim string should contain at least one numeric value).
+    operator_name: REQUIRED. Must name a REGISTRY operator. v0.1 defaulted
+        to mod-13 silently; v0.2 forces the caller to choose and defend it.
     num_samples: number of random domain-pair trials to run.
-    operator_name: which shared operator to test (must not vary per domain).
     seed: fixed seed for reproducibility of the random sampling itself.
     """
+    if operator_name not in REGISTRY:
+        raise ValueError(
+            f"Unknown operator '{operator_name}'. Choose from REGISTRY: "
+            f"{sorted(REGISTRY)}")
     random.seed(seed)
     domains = list(claims_by_domain.keys())
     results = []
@@ -91,15 +147,18 @@ def run_chamber4(claims_by_domain: dict, num_samples: int = 10,
             reason = "One or both claims lack a numeric value to apply the shared operator to."
         elif abs(res_a - res_b) < 1e-6:
             flag = ConsistencyFlag.CONSISTENT
-            reason = "Same operator produced matching result across both randomly sampled domains."
+            reason = ("Same function applied to both domains' quantities with "
+                      "matching output. SYNTACTIC consistency only — this is "
+                      "not evidence the domains share a mechanism.")
         else:
             flag = ConsistencyFlag.INCONSISTENT
             reason = (f"Operator produced divergent results ({res_a} vs {res_b}); "
-                       f"mapping may require special-casing = cherry-pick risk.")
+                      f"mapping may require special-casing = cherry-pick risk.")
 
         results.append(Chamber4Result(
             claim_pair=f"{dom_a}<->{dom_b}",
-            domain_a=dom_a, domain_b=dom_b,
+            domain_a=dom_a,
+            domain_b=dom_b,
             operator_applied=operator_name,
             result_a=str(res_a), result_b=str(res_b),
             flag=flag.value, reason=reason
@@ -109,14 +168,9 @@ def run_chamber4(claims_by_domain: dict, num_samples: int = 10,
 
 
 if __name__ == "__main__":
-    import pandas as pd
-
     claims_by_domain = {
-        "GR_physics": ["speed of light 299792458 m/s", "gravitational curvature radius 13.0"],
-        "Newtonian_physics": ["force equals 26.0 units", "orbital period 39 days"],
-        "Base13_structure": ["dodecahedron face count 12", "layer depth 13"],
-        "Tree_of_Life": ["sephirot count 10", "path count 22"],
+        "social_networks": ["network size 100 nodes", "network size 50 nodes"],
+        "mesh_networks": ["network size 100 nodes", "network size 25 nodes"],
     }
-    results = run_chamber4(claims_by_domain, num_samples=6)
-    df = pd.DataFrame([asdict(r) for r in results])
-    print(df.to_string(index=False))
+    for r in run_chamber4(claims_by_domain, "metcalfe_scaling", num_samples=4):
+        print(r.claim_pair, "->", r.flag, f"({r.result_a} vs {r.result_b})")
