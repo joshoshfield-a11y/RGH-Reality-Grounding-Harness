@@ -1,6 +1,6 @@
 """
 RGH Chamber 3: Independent Replication Protocol
-Reality Grounding Harness — Chamber 3 of 4
+Reality Grounding Harness — Chamber 3 of 5 (v0.2: import fix only; logic unchanged)
 
 Purpose: Take a narrow, bounded claim and re-express it as a code-level
 pipeline with zero mythic/framework-specific language, then verify that a
@@ -17,7 +17,7 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import Optional
 
-from rgh_chamber1_external_measurement import ClaimResult
+from Chamber1 import ClaimResult
 
 
 class ReplicationFlag(Enum):
@@ -126,7 +126,7 @@ def run_chamber3(chamber1_results: list, claim_texts: dict) -> list:
 
 if __name__ == "__main__":
     import pandas as pd
-    from rgh_chamber1_external_measurement import run_chamber1
+    from Chamber1 import run_chamber1
 
     sample_claims = [
         ("C001", "example.md", "The system aggregates public radio and radar data into a state."),
